@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Warehouse OS"/>
+<meta name="theme-color" content="#0d0f14"/>
+<title>Warehouse OS</title>
+<style>
+  :root {
+    --bg: #0d0f14; --card: #13151c; --border: #1e2029; --muted: #2a2d38;
+    --text: #e8e4d9; --sub: #666; --green: #00c853; --orange: #ff9900; --red: #ff4444;
+    --safe-top: env(safe-area-inset-top, 44px); --safe-bot: env(safe-area-inset-bottom, 34px);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif; background: var(--bg); color: var(--text); height: 100dvh; overflow: hidden; display: flex; flex-direction: column; }
+  .status-bar { height: var(--safe-top); background: var(--bg); flex-shrink: 0; }
+  .header { display: flex; align-items: center; justify-content: space-between; padding: 10px 20px 12px; background: rgba(13,15,20,0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .header-title { font-size: 17px; font-weight: 600; letter-spacing: -0.3px; }
+  .header-sub { font-size: 11px; color: var(--sub); letter-spacing: 0.3px; }
+  .pulse-dot { width: 7px; height: 7px; background: var(--green); border-radius: 50%; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.3} }
+  .add-btn { background: var(--green); color: #000; border: none; font-size: 13px; font-weight: 600; padding: 7px 14px; border-radius: 20px; cursor: pointer; }
+  .scroll-body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 16px 16px 8px; }
+  .stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 14px 16px; }
+  .stat-label { font-size: 11px; color: var(--sub); letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 4px; }
+  .stat-val { font-size: 28px; font-weight: 700; letter-spacing: -1px; }
+  .section-hd { font-size: 13px; font-weight: 600; color: var(--sub); letter-spacing: 0.5px; text-transform: uppercase; margin: 18px 4px 10px; }
+  .alert-banner { background: #1a1200; border: 1px solid #3a2a00; border-radius: 14px; padding: 12px 16px; display: flex; align-items: center; gap: 12px; margin-bottom: 16px; cursor: pointer; }
+  .alert-count { margin-left: auto; background: var(--orange); color: #000; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 10px; }
+  .item-list { background: var(--card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; margin-bottom: 16px; }
+  .item-row { display: flex; align-items: center; gap: 12px; padding: 13px 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background .15s; }
+  .item-row:last-child { border-bottom: none; }
+  .item-row:active { background: var(--border); }
+  .status-pill { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .item-name { font-size: 15px; font-weight: 500; letter-spacing: -0.2px; }
+  .item-meta { font-size: 12px; color: var(--sub); margin-top: 2px; }
+  .item-qty-wrap { margin-left: auto; text-align: right; }
+  .item-qty { font-size: 17px; font-weight: 600; letter-spacing: -0.5px; }
+  .item-unit { font-size: 11px; color: var(--sub); }
+  .item-chevron { color: var(--muted); font-size: 13px; margin-left: 4px; }
+  .tab-bar { display: flex; background: rgba(13,15,20,0.92); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid var(--border); padding: 8px 0; padding-bottom: calc(8px + var(--safe-bot)); flex-shrink: 0; }
+  .tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; padding: 4px 0; }
+  .tab-icon { font-size: 22px; }
+  .tab-label { font-size: 10px; letter-spacing: 0.2px; color: var(--sub); }
+  .tab.active .tab-label { color: var(--green); }
+  .tab-badge { position: absolute; top: -4px; right: -6px; background: var(--red); color: #fff; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 8px; min-width: 16px; text-align: center; }
+  .tab-icon-wrap { position: relative; }
+  .sheet-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 100; display: flex; flex-direction: column; justify-content: flex-end; animation: fadeIn .2s ease; }
+  @keyframes fadeIn { from{opacity:0}to{opacity:1} }
+  .sheet { background: #1a1c24; border-radius: 22px 22px 0 0; padding: 0 20px 0; padding-bottom: calc(16px + var(--safe-bot)); max-height: 90dvh; overflow-y: auto; animation: slideUp .25s cubic-bezier(.32,.72,0,1); }
+  @keyframes slideUp { from{transform:translateY(100%)}to{transform:translateY(0)} }
+  .sheet-handle { width: 36px; height: 4px; background: var(--muted); border-radius: 2px; margin: 12px auto 20px; }
+  .sheet-title { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 4px; }
+  .sheet-sub { font-size: 13px; color: var(--sub); margin-bottom: 20px; }
+  .field { margin-bottom: 14px; }
+  .field-label { font-size: 12px; color: var(--sub); letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 6px; }
+  .field-input { background: var(--border); border: none; border-radius: 12px; color: var(--text); font-family: inherit; font-size: 15px; padding: 13px 15px; width: 100%; outline: none; -webkit-appearance: none; }
+  .field-input::placeholder { color: var(--sub); }
+  .cta-btn { width: 100%; background: var(--green); color: #000; border: none; font-family: inherit; font-size: 16px; font-weight: 700; padding: 16px; border-radius: 14px; cursor: pointer; margin-top: 8px; }
+  .cancel-btn { width: 100%; background: var(--border); color: var(--sub); border: none; font-family: inherit; font-size: 16px; font-weight: 500; padding: 16px; border-radius: 14px; cursor: pointer; margin-top: 8px; }
+  .detail-row { display:flex; justify-content:space-between; align-items:center; padding:13px 0; border-bottom:1px solid var(--border); }
+  .detail-row:last-child { border-bottom:none; }
+  .detail-key { font-size:15px; color:var(--sub); }
+  .detail-val { font-size:15px; font-weight:500; }
+  .action-row { display:flex; gap:10px; margin-top:18px; }
+  .half-btn { flex:1; border:none; font-family:inherit; font-size:15px; font-weight:600; padding:14px; border-radius:14px; cursor:pointer; }
+  .add-stock-btn { background:#1e3a22; color:var(--green); }
+  .rem-stock-btn { background:#3a1a1a; color:var(--red); }
+  .toast { position: fixed; bottom: calc(90px + var(--safe-bot)); left: 50%; transform: translateX(-50%); background: #1e2029ee; color: var(--text); padding: 12px 22px; border-radius: 24px; font-size: 14px; font-weight: 500; z-index: 999; animation: fadeUp .3s ease, fadeOut .3s 2.5s ease forwards; white-space: nowrap; border: 1px solid var(--muted); }
+  @keyframes fadeUp { from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)} }
+  @keyframes fadeOut { to{opacity:0} }
+</style>
+</head>
+<body>
+<div class="status-bar"></div>
+<div class="header">
+  <div>
+    <div class="header-title">Warehouse OS</div>
+    <div class="header-sub" id="header-sub">Loading...</div>
+  </div>
+  <div class="pulse-dot"></div>
+  <button class="add-btn" onclick="openAddSheet()">+ Add</button>
+</div>
+<div class="scroll-body" id="main-body"></div>
+<div class="tab-bar">
+  <div class="tab active" id="tab-dash" onclick="switchTab('dash')">
+    <span class="tab-icon">📦</span>
+    <span class="tab-label">Overview</span>
+  </div>
+  <div class="tab" id="tab-inv" onclick="switchTab('inv')">
+    <span class="tab-icon">🗂</span>
+    <span class="tab-label">Inventory</span>
+  </div>
+  <div class="tab" id="tab-alerts" onclick="switchTab('alerts')">
+    <div class="tab-icon-wrap">
+      <span class="tab-icon">🔔</span>
+      <span class="tab-badge" id="alert-badge" style="display:none">0</span>
+    </div>
+    <span class="tab-label">Alerts</span>
+  </div>
+</div>
+<div id="sheet-container"></div>
+<div id="toast-container"></div>
+<script>
+let items = [
+  {id:1,sku:"WH-001",name:"Industrial Shelving Unit",cat:"Warehouse",qty:45,min:10,unit:"pcs",loc:"Zone A-1"},
+  {id:2,sku:"WH-002",name:"Packing Tape (48mm)",cat:"Warehouse",qty:6,min:20,unit:"rolls",loc:"Zone B-3"},
+  {id:3,sku:"WH-003",name:"Forklift Pallet",cat:"Warehouse",qty:120,min:30,unit:"pcs",loc:"Zone C-2"},
+  {id:4,sku:"WH-004",name:"Frozen Goods Pallet",cat:"Cold Warehouse",qty:3,min:10,unit:"pcs",loc:"Cold Zone 1"},
+  {id:5,sku:"WH-005",name:"Insulated Container",cat:"Cold Warehouse",qty:55,min:15,unit:"pcs",loc:"Cold Zone 2"},
+  {id:6,sku:"WH-006",name:"Refrigeration Unit",cat:"Cold Warehouse",qty:8,min:5,unit:"pcs",loc:"Cold Zone 1"},
+  {id:7,sku:"WH-007",name:"Wheat Flour (50kg)",cat:"Mill",qty:12,min:20,unit:"bags",loc:"Mill Zone A"},
+  {id:8,sku:"WH-008",name:"Grain Storage Bin",cat:"Mill",qty:2,min:5,unit:"pcs",loc:"Mill Zone B"},
+];
+let currentTab='dash';
+const sc=s=>({color:s.qty===0?'#ff4444':s.qty<=s.min?'#ff9900':'#00c853'});
+const sl=s=>s.qty===0?'OUT':s.qty<=s.min?'LOW':'OK';
+const low=()=>items.filter(i=>i.qty<=i.min);
+
+function switchTab(t){
+  currentTab=t;
+  ['dash','inv','alerts'].forEach(x=>document.getElementById('tab-'+x).classList.toggle('active',x===t));
+  render();
+}
+
+function render(){
+  const l=low();
+  const badge=document.getElementById('alert-badge');
+  badge.textContent=l.length; badge.style.display=l.length>0?'block':'none';
+  const total=items.reduce((s,i)=>s+i.qty,0);
+  document.getElementById('header-sub').textContent=`${items.length} SKUs · ${total.toLocaleString()} units`;
+  const body=document.getElementById('main-body');
+  if(currentTab==='dash') body.innerHTML=renderDash();
+  else if(currentTab==='inv') body.innerHTML=renderInv();
+  else body.innerHTML=renderAlerts();
+}
+
+function renderDash(){
+  const l=low(); const total=items.reduce((s,i)=>s+i.qty,0);
+  const cats=[...new Set(items.map(i=>i.cat))];
+  const maxQ=Math.max(...cats.map(c=>items.filter(i=>i.cat===c).reduce((s,i)=>s+i.qty,0)));
+  return `
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-label">Total SKUs</div><div class="stat-val">${items.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Total Units</div><div class="stat-val">${total.toLocaleString()}</div></div>
+    <div class="stat-card"><div class="stat-label">Low Stock</div><div class="stat-val" style="color:#ff9900">${l.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Out of Stock</div><div class="stat-val" style="color:#ff4444">${items.filter(i=>i.qty===0).length}</div></div>
+  </div>
+  ${l.length>0?`<div class="alert-banner" onclick="switchTab('alerts')"><span style="font-size:20px">⚠️</span><span style="font-size:13px;font-weight:500;color:#ff9900">${l.length} item${l.length>1?'s':''} need restocking</span><span class="alert-count">${l.length}</span></div>`:''}
+  <div class="section-hd">By Category</div>
+  <div class="item-list">
+  ${cats.map(c=>{const cq=items.filter(i=>i.cat===c).reduce((s,i)=>s+i.qty,0);const pct=Math.round((cq/maxQ)*100);return`<div class="item-row" style="flex-direction:column;align-items:flex-start;cursor:default"><div style="display:flex;justify-content:space-between;width:100%;margin-bottom:8px"><span style="font-size:15px;font-weight:500">${c}</span><span style="font-size:13px;color:#666">${cq} units</span></div><div style="width:100%;height:4px;background:#1e2029;border-radius:2px"><div style="height:100%;width:${pct}%;background:#e8e4d9;border-radius:2px"></div></div></div>`;}).join('')}
+  </div>
+  <div class="section-hd">All Items</div>
+  <div class="item-list">
+  ${items.slice(0,5).map(item=>`<div class="item-row" onclick="openDetail(${item.id})"><div class="status-pill" style="background:${sc(item).color}"></div><div><div class="item-name">${item.name}</div><div class="item-meta">${item.sku} · ${item.loc}</div></div><div class="item-qty-wrap"><div class="item-qty" style="color:${sc(item).color}">${item.qty}</div><div class="item-unit">${item.unit}</div></div><span class="item-chevron">›</span></div>`).join('')}
+  </div><div style="height:8px"></div>`;
+}
+
+function renderInv(){
+  return `<div class="section-hd">All Items (${items.length})</div><div class="item-list">
+  ${items.map(item=>`<div class="item-row" onclick="openDetail(${item.id})"><div class="status-pill" style="background:${sc(item).color}"></div><div style="flex:1;min-width:0"><div class="item-name">${item.name}</div><div class="item-meta">${item.sku} · ${item.cat}</div></div><div class="item-qty-wrap"><div class="item-qty" style="color:${sc(item).color}">${item.qty}</div><div class="item-unit">${item.unit}</div></div><span class="item-chevron">›</span></div>`).join('')}
+  </div><div style="height:8px"></div>`;
+}
+
+function renderAlerts(){
+  const l=low();
+  if(!l.length) return`<div style="text-align:center;margin-top:80px"><div style="font-size:60px;margin-bottom:16px">✅</div><div style="font-size:20px;font-weight:700;margin-bottom:8px">All Clear</div><div style="font-size:15px;color:#666">All stock levels are healthy</div></div>`;
+  return `<div class="section-hd">${l.length} Alert${l.length>1?'s':''}</div><div class="item-list">
+  ${l.map(item=>`<div class="item-row" onclick="openDetail(${item.id})"><div class="status-pill" style="background:${sc(item).color}"></div><div style="flex:1;min-width:0"><div class="item-name">${item.name}</div><div class="item-meta">${item.qty} / ${item.min} min · ${item.loc}</div></div><span style="font-size:12px;font-weight:600;color:${sc(item).color};background:${sc(item).color}22;padding:4px 10px;border-radius:20px;margin-right:6px">${sl(item)}</span><span class="item-chevron">›</span></div>`).join('')}
+  </div><div style="height:8px"></div>`;
+}
+
+function closeSheet(){document.getElementById('sheet-container').innerHTML='';}
+
+function openDetail(id){
+  const item=items.find(i=>i.id===id);
+  document.getElementById('sheet-container').innerHTML=`
+  <div class="sheet-overlay" onclick="if(event.target===this)closeSheet()">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px"><div style="width:10px;height:10px;border-radius:50%;background:${sc(item).color}"></div><div class="sheet-title">${item.name}</div></div>
+      <div class="sheet-sub">${item.sku} · ${item.cat}</div>
+      <div style="background:var(--border);border-radius:14px;padding:0 16px">
+        <div class="detail-row"><span class="detail-key">Quantity</span><span class="detail-val" style="color:${sc(item).color}">${item.qty} ${item.unit}</span></div>
+        <div class="detail-row"><span class="detail-key">Min Stock</span><span class="detail-val">${item.min} ${item.unit}</span></div>
+        <div class="detail-row"><span class="detail-key">Location</span><span class="detail-val">${item.loc}</span></div>
+        <div class="detail-row"><span class="detail-key">Category</span><span class="detail-val">${item.cat}</span></div>
+      </div>
+      <div class="action-row">
+        <button class="half-btn add-stock-btn" onclick="openMoveSheet(${id},'add')">＋ Add Stock</button>
+        <button class="half-btn rem-stock-btn" onclick="openMoveSheet(${id},'remove')">－ Remove</button>
+      </div>
+      <button class="cancel-btn" onclick="closeSheet()">Done</button>
+    </div>
+  </div>`;
+}
+
+function openMoveSheet(id,type){
+  const item=items.find(i=>i.id===id);
+  document.getElementById('sheet-container').innerHTML=`
+  <div class="sheet-overlay" onclick="if(event.target===this)closeSheet()">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">${type==='add'?'Add':'Remove'} Stock</div>
+      <div class="sheet-sub">${item.name} · now: ${item.qty} ${item.unit}</div>
+      <div class="field"><div class="field-label">Quantity</div><input id="move-qty" class="field-input" type="number" inputmode="numeric" placeholder="Enter amount..." autofocus/></div>
+      <button class="cta-btn" style="background:${type==='add'?'var(--green)':'var(--red)'};color:${type==='add'?'#000':'#fff'}" onclick="doMove(${id},'${type}')">Confirm</button>
+      <button class="cancel-btn" onclick="openDetail(${id})">← Back</button>
+    </div>
+  </div>`;
+  setTimeout(()=>document.getElementById('move-qty')?.focus(),300);
+}
+
+function doMove(id,type){
+  const qty=parseInt(document.getElementById('move-qty')?.value||0);
+  if(!qty||qty<=0){showToast('Enter a valid quantity');return;}
+  items=items.map(i=>i.id!==id?i:{...i,qty:type==='add'?i.qty+qty:Math.max(0,i.qty-qty)});
+  const item=items.find(i=>i.id===id);
+  closeSheet(); showToast(`${type==='add'?'Added':'Removed'} ${qty} ${item.unit}`); render();
+}
+
+function openAddSheet(){
+  document.getElementById('sheet-container').innerHTML=`
+  <div class="sheet-overlay" onclick="if(event.target===this)closeSheet()">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">New Item</div>
+      <div class="sheet-sub">Add to inventory</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="field"><div class="field-label">SKU</div><input id="f-sku" class="field-input" placeholder="WH-009"/></div>
+        <div class="field"><div class="field-label">Unit</div><input id="f-unit" class="field-input" placeholder="pcs"/></div>
+      </div>
+      <div class="field"><div class="field-label">Item Name</div><input id="f-name" class="field-input" placeholder="Product name"/></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="field"><div class="field-label">Quantity</div><input id="f-qty" class="field-input" type="number" inputmode="numeric" placeholder="0"/></div>
+        <div class="field"><div class="field-label">Min Qty</div><input id="f-min" class="field-input" type="number" inputmode="numeric" placeholder="0"/></div>
+      </div>
+      <div class="field"><div class="field-label">Location</div><input id="f-loc" class="field-input" placeholder="Zone A-1"/></div>
+      <div class="field"><div class="field-label">Category</div>
+        <select id="f-cat" class="field-input"><option>Warehouse</option><option>Cold Warehouse</option><option>Mill</option></select>
+      </div>
+      <button class="cta-btn" onclick="doAddItem()">Add to Inventory</button>
+      <button class="cancel-btn" onclick="closeSheet()">Cancel</button>
+    </div>
+  </div>`;
+}
+
+function doAddItem(){
+  const name=document.getElementById('f-name').value.trim();
+  const sku=document.getElementById('f-sku').value.trim();
+  const qty=parseInt(document.getElementById('f-qty').value||0);
+  const min=parseInt(document.getElementById('f-min').value||0);
+  const unit=document.getElementById('f-unit').value.trim()||'pcs';
+  const loc=document.getElementById('f-loc').value.trim()||'Unassigned';
+  const cat=document.getElementById('f-cat').value;
+  if(!name||!sku){showToast('Name and SKU required');return;}
+  items.push({id:Date.now(),sku,name,cat,qty,min,unit,loc});
+  closeSheet(); showToast(`"${name}" added`); render();
+}
+
+function showToast(msg){
+  const c=document.getElementById('toast-container');
+  c.innerHTML=`<div class="toast">✓ &nbsp;${msg}</div>`;
+  setTimeout(()=>c.innerHTML='',3000);
+}
+
+render();
+</script>
+</body>
+</html>
